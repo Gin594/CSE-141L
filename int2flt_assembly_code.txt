@@ -1,0 +1,169 @@
+load [#1] // load lsw from memory location 1
+assign r1 // put into register r1
+load [#0] // load upper 8 bits from memory location 0
+assign r2 // put into register r2
+set #0x80
+and r2
+assign r3 // isolate sign bit into r3
+set #0
+beq r1, Check_zero // check of lower bits are all zero
+L_1:
+set #29
+assign r4 // set biased E into r4
+set #0x7F
+and r2 // assign the upper 7 bits (excludes the sign bit) into r5
+assign r5
+Loop:
+set #0x40
+and r5 // isolate 15th bit
+assign r6
+set #0x40
+beq r6, Carry_out // check if 15th bit is 1, if true branch to done label
+set #1
+lsl r5 // if r6 == 0 then left shift upper 8bits one left and decrement r4
+assign r5
+set #0x80
+and r1 // extract 8th bot of lower 8 bits
+assign r6 // put inti r6
+set #7
+lsr r6 // shift right 7
+assign r6
+move r5
+orr r6
+assign r5
+set #1
+lsl r1 // shift lower 8 bit one to left
+set #1
+sub r3 // decrement exponent by 1
+assign r3
+b Loop // branch to loop
+Carry_out:
+set #0x10 // case 1, if 5th bit is 0 and 4th bit is 1
+and r1
+assign r6 // extract 5th bit
+set #0
+beq r6, Case1 // if 5th bit is 1, branch to case 1
+End_case1:
+set #0x10
+beq r6, Case2 // if 5th bit is 0 branch to case 2
+End_case2:
+set #0x80
+beq r3, Overflow // check overflow
+End_overflow: // get the mantissa
+set #2
+lsl r4
+assign r4
+move r3
+orr r4
+assign r3 // orr with the sign bit
+set #15
+assign r7
+set #11
+assign r8
+Mantissa_loop:
+set #1
+lsr r1 // shift lower 8 bit one to the right
+assign r1
+set #1
+and r5
+assign r6 // extract the 1th of upper 8 bits
+set #7
+lsl r6 // shift left 7 bit in order put the extracted bit in 8th
+assign r6
+move r1
+orr r6
+assign r1
+set #1
+lsr r5
+assign r5 // shift upper 8 bits one to right
+set #1
+sub r7
+assign r7
+move r8
+beq r7, Output // check if reach the 11th bit
+b Mantissa_loop
+Output:
+set #0xFF
+and r1
+assign r1
+set #0x3
+and r5
+assign r5
+move r1
+store [#3] // LSW result store into memory location 3
+move r5
+store [#2] // MSW result store into memory location 2
+b END // end program
+Case1:
+set #0x8
+and r1
+assign r6 // extract 4th bit
+set #0x8
+beq r6, Carry_out1 // if 4th bit is 1, branch to carry out case
+b End_case1
+Carry_out1:
+set #0xF8
+bge r1, Add_bit1
+End_add1:
+set #8
+add r1
+assign r1
+b End_case1
+Case2:
+set #0x8
+and r1
+assign r6 // extract 4th bit
+set #0x8
+beq r6, Carry_out2
+b End_case2
+Carry_out2:
+set #0x7
+and r1
+assign r6
+set #0
+beq r6, End_case2 // if 3rd bit is 0, then end else continue
+set #0xF8
+bge r1, Add_bit2
+End_add2:
+set #8
+add r1
+assign r1
+b End_case 2
+Add_bit1:
+set #1
+add r5
+assign r5
+b End_add1
+Add_bit2:
+set #1
+add r5
+assign r5
+b End_add2
+Overflow:
+set #1
+lsr r1 // shift lower 8 bit one to the right
+assign r1
+set #0x1
+and r5 // extract the first bit of upper 8bits
+assign r6
+set #7
+lsl r6 // left shift 7 bits in order put extracted bit in 8th bit
+assign r6
+move r1
+orr r6
+assign r1
+set #1
+lsr r5
+assign r5
+set #1
+add r4
+assign r4
+b End_overflow
+Check_zero:
+set #0x7F
+and r1
+assign r1
+move r3
+beq r1, END
+b L_1
+END
